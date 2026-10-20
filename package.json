@@ -1,0 +1,10 @@
+{
+  "name": "tw-pdf2jpg",
+  "version": "1.0.0",
+  "description": "在瀏覽器裡把 PDF 轉成 JPG／PNG，檔案不上傳",
+  "license": "Apache-2.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\""
+  }
+}
