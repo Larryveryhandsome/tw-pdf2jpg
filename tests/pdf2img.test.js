@@ -50,3 +50,15 @@ test('品質與檔案大小顯示', () => {
   assert.strictEqual(P.formatBytes(2048), '2.0 KB');
   assert.strictEqual(P.formatBytes(3 * 1024 * 1024), '3.00 MB');
 });
+
+test('沒有嵌入字型的中文 PDF：app.js 有設定 CMap，且對照表檔案都在', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const root = path.join(__dirname, '..');
+  const app = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
+  assert.match(app, /cMapUrl:\s*'vendor\/pdfjs-cmaps\/'/);
+  assert.match(app, /cMapPacked:\s*true/);
+  for (const f of ['UniCNS-UCS2-H.bcmap', 'ETen-B5-H.bcmap', 'GBK-EUC-H.bcmap', 'UniGB-UCS2-H.bcmap']) {
+    assert.ok(fs.existsSync(path.join(root, 'vendor', 'pdfjs-cmaps', f)), f);
+  }
+});

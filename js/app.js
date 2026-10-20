@@ -36,7 +36,7 @@
     status('讀取中…');
     for (const file of pdfs) {
       try {
-        const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+        const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer(), cMapUrl: 'vendor/pdfjs-cmaps/', cMapPacked: true }).promise;
         files.push({ file, pdf, total: pdf.numPages });
       } catch (e) {
         status(`「${file.name}」打不開（可能有密碼或檔案損壞）。`, 'error');

@@ -3,3 +3,4 @@
 *.csv text eol=crlf
 *.png binary
 *.jpg binary
+*.bcmap binary

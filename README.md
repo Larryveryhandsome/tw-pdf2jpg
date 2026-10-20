@@ -34,6 +34,7 @@
 - **有密碼保護的 PDF** 打不開，請先用原本的軟體解除密碼。
 - 解析度越高檔案越大；傳 LINE 用 150 DPI 就很清楚，要列印再選 300 DPI。
 - 頁數很多又選高解析度時，手機可能會比較慢；超大頁面會自動縮小，避免瀏覽器當掉。
+- 沒有嵌入字型的中文 PDF（舊版 Word、部分系統匯出的檔案）也看得到字：專案內附 PDF.js 的字元對照表（`vendor/pdfjs-cmaps/`）。
 - 第一次開需要連網載入 PDF.js 和 JSZip（從 cdnjs，並用 SRI 驗證檔案沒被竄改）。
 
 ## 給開發者
@@ -43,6 +44,7 @@
 | `index.html` | 頁面與樣式 |
 | `js/pdf2img.js` | 純函式：頁碼解析、檔名、DPI 換算（瀏覽器與 Node 共用） |
 | `js/app.js` | 畫面邏輯（PDF.js 轉圖、下載、ZIP） |
+| `vendor/pdfjs-cmaps/` | PDF.js 的 CMap（Apache-2.0），顯示沒嵌入字型的中日韓 PDF 用 |
 
 ```bash
 npm test

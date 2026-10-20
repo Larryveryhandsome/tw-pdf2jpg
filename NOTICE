@@ -4,3 +4,5 @@ Copyright 2026 Larryveryhandsome and tw-pdf2jpg contributors
 This product is licensed under the Apache License, Version 2.0 (see LICENSE).
 
 This page loads PDF.js (Apache-2.0, Mozilla) and JSZip (MIT) from cdnjs.
+
+vendor/pdfjs-cmaps/ 內是 PDF.js 3.11.174（Apache-2.0, Mozilla）附的 CMap 字元對照表，用來顯示沒有嵌入字型的中日韓 PDF；授權見該資料夾的 LICENSE。
