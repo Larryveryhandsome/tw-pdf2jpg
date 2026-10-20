@@ -62,3 +62,28 @@ test('沒有嵌入字型的中文 PDF：app.js 有設定 CMap，且對照表檔�
     assert.ok(fs.existsSync(path.join(root, 'vendor', 'pdfjs-cmaps', f)), f);
   }
 });
+
+test('安全：pdf.js 一律關閉 isEvalSupported（CVE-2024-4367，惡意 PDF 可執行任意 JS）', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const app = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
+  assert.match(app, /getDocument\(\{[^}]*isEvalSupported:\s*false/);
+});
+
+test('畫布像素上限：A3 300DPI 會自動縮小，A4 300DPI 不縮', () => {
+  const a4 = P.safeScale(595, 842, 300 / 72);
+  assert.strictEqual(a4, 300 / 72);
+  const a3 = P.safeScale(842, 1191, 300 / 72);
+  assert.ok(a3 < 300 / 72);
+  assert.ok(842 * a3 * 1191 * a3 <= 16000001);
+  const huge = P.safeScale(14400, 14400, 600 / 72);
+  assert.ok(14400 * huge * 14400 * huge <= 16000001);
+});
+
+test('同名檔不互相覆蓋', () => {
+  const used = new Set();
+  assert.strictEqual(P.uniqueName('a_p001.jpg', used), 'a_p001.jpg');
+  assert.strictEqual(P.uniqueName('a_p001.jpg', used), 'a_p001 (2).jpg');
+  assert.strictEqual(P.uniqueName('A_P001.JPG', used), 'A_P001 (3).JPG');
+  assert.strictEqual(P.uniqueName('b.jpg', used), 'b.jpg');
+});

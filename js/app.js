@@ -9,6 +9,7 @@
 
   let files = [];     // { file, pdf, total }
   let results = [];   // { name, blob, url, w, h }
+  const MAX_TOTAL_BYTES = 600 * 1024 * 1024; // 結果全放記憶體；累積超過就停下來，避免整個分頁當掉
 
   const drop = $('dropZone');
   drop.addEventListener('click', () => $('fileInput').click());
@@ -36,7 +37,7 @@
     status('讀取中…');
     for (const file of pdfs) {
       try {
-        const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer(), cMapUrl: 'vendor/pdfjs-cmaps/', cMapPacked: true }).promise;
+        const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer(), cMapUrl: 'vendor/pdfjs-cmaps/', cMapPacked: true, isEvalSupported: false }).promise;
         files.push({ file, pdf, total: pdf.numPages });
       } catch (e) {
         status(`「${file.name}」打不開（可能有密碼或檔案損壞）。`, 'error');
@@ -54,7 +55,7 @@
         <button class="link" data-rm="${i}" aria-label="移除 ${esc(f.file.name)}">移除</button>
       </div>`).join('');
     $('fileList').querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => {
-      files.splice(Number(b.dataset.rm), 1); renderFiles();
+      const [gone] = files.splice(Number(b.dataset.rm), 1); if (gone && gone.pdf) gone.pdf.destroy(); renderFiles();
     }));
     $('convertBtn').disabled = !files.length;
     $('options').hidden = !files.length;
@@ -78,6 +79,9 @@
     const q = P.quality($('quality').value);
     const scale0 = P.dpiToScale($('dpi').value);
     const jobs = [];
+    const usedNames = new Set();
+    let totalBytes = 0, stopMsg = '';
+    $('bar').style.width = '0%';
     for (const f of files) {
       const { pages, errors } = P.parsePageRange($('pages').value, f.total);
       if (errors.length) { status(`${f.file.name}：${errors.join('；')}`, 'error'); return; }
@@ -101,16 +105,24 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         await page.render({ canvasContext: ctx, viewport: vp }).promise;
         const blob = await canvasToBlob(canvas, type, q);
-        const name = P.pageFileName(f.file.name, n, f.total, format);
+        if (!blob) throw new Error(`第 ${n} 頁產生圖片失敗（頁面太大或記憶體不足），請降低解析度後再試`);
+        page.cleanup();
+        const name = P.uniqueName(P.pageFileName(f.file.name, n, f.total, format), usedNames);
         results.push({ name, blob, url: URL.createObjectURL(blob), w: canvas.width, h: canvas.height });
         canvas.width = canvas.height = 0;
         $('bar').style.width = `${((i + 1) / jobs.length) * 100}%`;
+        totalBytes += blob.size;
+        if (totalBytes > MAX_TOTAL_BYTES && i < jobs.length - 1) {
+          stopMsg = `記憶體接近上限，已在第 ${i + 1} / ${jobs.length} 張停止。已轉好的可以下載；剩下的請用「頁碼」分批轉，或降低解析度。`;
+          break;
+        }
       }
       renderResults();
-      status(`完成！共 ${results.length} 張。`, 'ok');
+      if (stopMsg) status(stopMsg, 'error'); else status(`完成！共 ${results.length} 張。`, 'ok');
     } catch (e) {
       console.error(e);
-      status('轉換失敗：' + e.message, 'error');
+      renderResults(); // 已轉好的頁面不要因為某一頁失敗就丟掉
+      status('轉換失敗：' + e.message + (results.length ? `（前 ${results.length} 張已轉好，可以下載）` : ''), 'error');
     } finally {
       $('convertBtn').disabled = false;
     }
@@ -140,5 +152,5 @@
     status(`已打包 ${results.length} 張。`, 'ok');
   });
 
-  $('resetBtn').addEventListener('click', () => { clearResults(); files = []; renderFiles(); status(''); $('progress').hidden = true; });
+  $('resetBtn').addEventListener('click', () => { clearResults(); files.forEach(f => f.pdf && f.pdf.destroy()); files = []; renderFiles(); status(''); $('progress').hidden = true; });
 })();

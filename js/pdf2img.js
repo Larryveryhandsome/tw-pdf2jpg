@@ -60,10 +60,25 @@
   }
 
   /** 避免畫布太大讓瀏覽器當掉：長邊超過 maxSide 就自動縮小 scale。 */
-  function safeScale(widthPt, heightPt, scale, maxSide) {
+  function safeScale(widthPt, heightPt, scale, maxSide, maxPixels) {
     const limit = maxSide || 8000;
-    const longest = Math.max(widthPt, heightPt) * scale;
-    return longest > limit ? scale * (limit / longest) : scale;
+    const area = maxPixels || 16000000; // iOS Safari 等行動瀏覽器畫布上限約 16.7M 像素，超過會變空白圖
+    let s = scale;
+    const longest = Math.max(widthPt, heightPt) * s;
+    if (longest > limit) s *= limit / longest;
+    const px = widthPt * s * heightPt * s;
+    if (px > area) s *= Math.sqrt(area / px);
+    return s;
+  }
+
+  /** 避免同名檔互相覆蓋（ZIP 裡同名會只剩一個）：a.jpg、a (2).jpg、a (3).jpg…；used 是已用過的 Set，會被更新。 */
+  function uniqueName(name, used) {
+    const dot = name.lastIndexOf('.');
+    const stem = dot > 0 ? name.slice(0, dot) : name, ext = dot > 0 ? name.slice(dot) : '';
+    let out = name, i = 2;
+    while (used.has(out.toLowerCase())) out = `${stem} (${i++})${ext}`;
+    used.add(out.toLowerCase());
+    return out;
   }
 
   /** 品質 1～100 → 0.01～1。 */
@@ -78,5 +93,5 @@
     return `${(n / 1024 / 1024).toFixed(2)} MB`;
   }
 
-  return { parsePageRange, baseName, pageFileName, dpiToScale, safeScale, quality, formatBytes };
+  return { parsePageRange, baseName, pageFileName, uniqueName, dpiToScale, safeScale, quality, formatBytes };
 });
