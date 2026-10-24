@@ -5,7 +5,27 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  // PDF.js 4.x 只提供 ES module。網頁版（http/https）用專案自己帶的檔案；
+  // 直接雙擊 index.html（file://）時瀏覽器不准載入本機 module，改從 cdnjs 載入（固定版本）。
+  const PDFJS_VERSION = '4.10.38';
+  const PDFJS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/' + PDFJS_VERSION + '/';
+  const abs = rel => new URL(rel, document.baseURI).href;
+  let pdfjsPromise = null;
+  function loadPdfjs() {
+    if (!pdfjsPromise) {
+      pdfjsPromise = (async () => {
+        let lib, worker;
+        if (location.protocol !== 'file:') {
+          try { lib = await import(abs('vendor/pdfjs/pdf.min.mjs')); worker = abs('vendor/pdfjs/pdf.worker.min.mjs'); } catch (e) { console.warn('本機 PDF.js 載入失敗，改用 CDN', e); }
+        }
+        if (!lib) { lib = await import(PDFJS_CDN + 'pdf.min.mjs'); worker = PDFJS_CDN + 'pdf.worker.min.mjs'; }
+        lib.GlobalWorkerOptions.workerSrc = worker;
+        return lib;
+      })();
+      pdfjsPromise.catch(() => { pdfjsPromise = null; });
+    }
+    return pdfjsPromise;
+  }
 
   let files = [];     // { file, pdf, total }
   let results = [];   // { name, blob, url, w, h }
@@ -35,9 +55,13 @@
     const pdfs = list.filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
     if (!pdfs.length) { status('請選 PDF 檔。', 'error'); return; }
     status('讀取中…');
+    let pdfjsLib;
+    try { pdfjsLib = await loadPdfjs(); }
+    catch (e) { console.error(e); status('PDF 元件載入失敗，請檢查網路後重新整理頁面。', 'error'); return; }
     for (const file of pdfs) {
       try {
-        const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer(), cMapUrl: 'vendor/pdfjs-cmaps/', cMapPacked: true, isEvalSupported: false }).promise;
+        // isEvalSupported:false＝關掉 PDF.js 的 eval 路徑（CVE-2024-4367 的緩解，4.2.67 起也已在程式內修正，兩層都留著）
+        const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer(), cMapUrl: abs('vendor/pdfjs-cmaps/'), cMapPacked: true, isEvalSupported: false }).promise;
         files.push({ file, pdf, total: pdf.numPages });
       } catch (e) {
         status(`「${file.name}」打不開（可能有密碼或檔案損壞）。`, 'error');

@@ -50,6 +50,16 @@
 npm test
 ```
 
+## 已知問題
+
+- PDF.js 從 3.11.174 升到 4.10.38。CVE-2024-4367 在 4.2.67 起已修正，並保留 isEvalSupported:false 雙重防護（有測試守門）。
+- 直接雙擊 index.html（file://）時：PDF.js 要連網從 cdnjs 載入，而且瀏覽器不准讀本機字元對照表，沒嵌入字型的中文 PDF 可能缺字；要完整功能請用線上版或 python -m http.server。
+- 有密碼的 PDF 打不開；超大頁面會自動縮小。
+- vendor/pdfjs/ 是 PDF.js 官方 4.10.38 的壓縮檔，原樣未修改（與 npm 套件 pdfjs-dist@4.10.38 的 build/ 檔案逐位元組相同）。機密掃描器會把壓縮碼裡的片段與內嵌字型誤判成「長 token」或字典詞，已人工確認是誤判。sha256：pdf.min.mjs = 27fc2a05…a9c、pdf.worker.min.mjs = 1baa1844…e36。
+- 只實測 Chromium（桌機與 375 寬）。
+
+完整的發布前檢查（八道閘門）見 [RELEASE_CHECK.md](RELEASE_CHECK.md)。
+
 ## 授權
 
 [Apache License 2.0](LICENSE)。使用 [PDF.js](https://mozilla.github.io/pdf.js/)（Apache-2.0）與 [JSZip](https://stuk.github.io/jszip/)（MIT）。

@@ -56,7 +56,7 @@ test('沒有嵌入字型的中文 PDF：app.js 有設定 CMap，且對照表檔�
   const path = require('node:path');
   const root = path.join(__dirname, '..');
   const app = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
-  assert.match(app, /cMapUrl:\s*'vendor\/pdfjs-cmaps\/'/);
+  assert.match(app, /cMapUrl:\s*abs\('vendor\/pdfjs-cmaps\/'\)/);
   assert.match(app, /cMapPacked:\s*true/);
   for (const f of ['UniCNS-UCS2-H.bcmap', 'ETen-B5-H.bcmap', 'GBK-EUC-H.bcmap', 'UniGB-UCS2-H.bcmap']) {
     assert.ok(fs.existsSync(path.join(root, 'vendor', 'pdfjs-cmaps', f)), f);
@@ -86,4 +86,21 @@ test('同名檔不互相覆蓋', () => {
   assert.strictEqual(P.uniqueName('a_p001.jpg', used), 'a_p001 (2).jpg');
   assert.strictEqual(P.uniqueName('A_P001.JPG', used), 'A_P001 (3).JPG');
   assert.strictEqual(P.uniqueName('b.jpg', used), 'b.jpg');
+});
+
+// ---- 安全：PDF.js 版本與 CVE-2024-4367 緩解（防止日後被改回舊版或拿掉設定）----
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.join(__dirname, '..');
+
+test('PDF.js 是 4.2.67 以上（CVE-2024-4367 已修正）', () => {
+  const m = fs.readFileSync(path.join(root, 'vendor/pdfjs/pdf.min.mjs'), 'utf8').match(/apiVersion:"(\d+)\.(\d+)\.(\d+)"/);
+  assert.ok(m, '找不到 PDF.js 版本字串');
+  const [a, b, c] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  assert.ok(a > 4 || (a === 4 && (b > 2 || (b === 2 && c >= 67))), `PDF.js 版本太舊：${a}.${b}.${c}`);
+});
+
+test('app.js 保留 isEvalSupported:false，index.html 不再載入 3.x', () => {
+  assert.match(fs.readFileSync(path.join(root, 'js/app.js'), 'utf8'), /isEvalSupported:\s*false/);
+  assert.doesNotMatch(fs.readFileSync(path.join(root, 'index.html'), 'utf8'), /pdf\.js\/3\./);
 });
