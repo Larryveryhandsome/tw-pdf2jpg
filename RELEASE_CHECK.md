@@ -14,7 +14,7 @@ PDF 轉 JPG／PNG（檔案不上傳，純瀏覽器）。技術面八道閘門都
 | 4 | 完成使用者任務 | ✅ | 瀏覽器實測（Playwright＋Chromium，桌機 1280 與手機 375 寬各跑一次）：http 模式：選 3 頁的中文 PDF（沒嵌入字型，要靠 CMap）→選頁碼 1-2→轉出 2 張 1240×1753 圖，影像有 9,573 個深色像素（文字確實畫出來，不是白紙）→「全部下載（ZIP）」得到 zh_images.zip；雙擊開 index.html（file://）時改從 cdnjs 載入 PDF.js，仍可轉出 3 張。console 無 error、無橫向捲動。腳本與截圖由維護者留存（未放進 repo）。 |
 | 5 | 安全／效能／環境 | ✅ | 全部在使用者瀏覽器內運算，不上傳；輸出到畫面的使用者文字有跳脫（單元測試含 XSS 字串）；375 寬無橫向捲動。限制：只測 Chromium，Firefox／Safari／真機未測（列入已知問題）。 |
 | 6 | 資料 | ✅ | 沒有持久資料；轉出的圖片全在記憶體，累積超過 600MB 會停下來並提示，已轉好的仍可下載。 |
-| 7 | 交付版本 | ⚠️ | 歷史需全新（待維護者同意 force push）：最舊的 README commit 含作者個人姓名。現有檔案已乾淨（掃描只剩 README「需要客製化？」段與作者行的事務所名稱，那是刻意保留）。 乾淨 clone 照 README 安裝（零套件）→ npm test 全過；已加 CI（.github/workflows/test.yml）。 |
+| 7 | 交付版本 | ⚠️ | 歷史需全新（待維護者同意 force push）：最舊的 README commit 含作者個人姓名。現有檔案已乾淨（掃描只剩 README「需要客製化？」段與作者行的事務所名稱，那是刻意保留）。 乾淨 clone 照 README 安裝（零套件）→ npm test 全過；已加 CI（.github/workflows/test.yml，Node 20 跑 npm test）；CI 第一次跑就抓到 `npm test` 原本寫的萬用字元在 Node 18／20 找不到測試檔（只有 Node 21 以後認得），已改成 `node --test`，與 README 寫的「Node 18 以上」一致。 |
 | 8 | 出事能恢復 | ✅ | 純靜態網頁，沒有伺服器：錯誤只出現在瀏覽器 console，不會通知；復原方式＝`git revert` 後重新部署 GitHub Pages（約 1 分鐘）；使用者資料的復原靠「備份／匯出」功能（見閘門 6）。核心流程已在上面重驗。 |
 
 ## 掃描結果（deep_audit，含 git 全歷史）
